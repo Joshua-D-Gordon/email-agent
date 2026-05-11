@@ -1,0 +1,108 @@
+rules_version = '2';
+
+// ===============================================================
+// SuperFunnel — Email Agent
+// ===============================================================
+//
+// This app is a single-user, local-only home assignment. There is no
+// Firebase Auth in scope, and the LangGraph agent writes from the server
+// via the Admin SDK (which bypasses Security Rules entirely).
+//
+// The browser uses the client SDK ONLY to read company/email/chat docs
+// via onSnapshot for the realtime dashboard. It never writes.
+//
+// Rules below reflect that contract:
+//   - Client reads: ALLOWED for the four collections the dashboard subscribes to.
+//   - Client writes: DENIED everywhere (the Admin SDK does all writes).
+//   - Everything else: default-deny.
+//
+// >>> THIS IS A PROTOTYPE RULESET FOR A LOCAL DEMO. <<<
+// Before shipping anywhere public, add Firebase Auth and replace the
+// permissive client-read rules with owner-only checks — see the
+// "Production hardening sketch" block at the bottom of this file.
+//
+// ===============================================================
+// Assumed Data Model (from claude-code-chats/plan.md §4)
+// ===============================================================
+//
+// Collection: companies/{companyId}
+//   id, name, domain, status, profile (map), sources (list),
+//   createdAt, updatedAt
+//
+// Subcollection: companies/{companyId}/emails/{emailId}
+//   id, subject, body, recommendedSendTrigger, status,
+//   draftedAt, approvedAt?, revisionOf?
+//
+// Collection: chats/{threadId}
+//   threadId, companyId?, createdAt, updatedAt
+//
+// Subcollection: chats/{threadId}/messages/{messageId}
+//   role, content, toolCalls?, createdAt
+//
+// Collection: checkpoints/{threadId}/steps/{checkpointId}
+//   state (map), next (list), createdAt
+//   Server-side only; clients have no reason to touch this.
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Companies dossier — dashboard reads, agent writes via Admin SDK.
+    match /companies/{companyId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /emails/{emailId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // Chat threads + messages — chat UI reads, agent writes via Admin SDK.
+    match /chats/{threadId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /messages/{messageId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // LangGraph checkpoints — server-only. No client access.
+    match /checkpoints/{threadId}/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Default deny.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// ===============================================================
+// Production hardening sketch (DO NOT enable as-is)
+// ===============================================================
+//
+// When/if this app grows past a local demo:
+//
+//   1. Add Firebase Auth and require sign-in:
+//        function isAuthenticated() { return request.auth != null; }
+//        function isOwner(uid) { return isAuthenticated() && request.auth.uid == uid; }
+//
+//   2. Add an `ownerUid` field to every top-level doc the agent creates,
+//      and scope reads/writes to the owner:
+//        allow read: if isOwner(resource.data.ownerUid);
+//
+//   3. Keep client writes denied — only the Admin SDK should mutate state.
+//      Validate every Admin-written field server-side before writing.
+//
+//   4. Add per-field validation (size caps on `body`, `content`, etc.)
+//      to prevent 1MB-payload DoS if writes are ever opened to clients.
+//
+//   5. Run the "Devil's Advocate" attack checklist from the firestore
+//      security_rules.md skill before going live.
+//
+// ===============================================================

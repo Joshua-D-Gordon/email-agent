@@ -1,0 +1,1 @@
+### copy my exact promts to you and a summary of you answer in to the /claude-code-chats file in mark down format. the goal of this folder is for a human evaluator to evaluate how well a developer comunicates with a ai assitaned IDE.

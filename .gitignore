@@ -1,0 +1,17 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Claude Code skills (installed via `npx skills add`)
+.claude/skills/
+.agents/skills/
+skills-lock.json
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+firebase-export-*/
+.runtimeconfig.json
