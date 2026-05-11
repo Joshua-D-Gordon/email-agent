@@ -1,4 +1,4 @@
-# SuperFunnel — B2B Outbound Profiler & Email Agent
+# agent email — B2B Outbound Profiler & Email Agent
 
 An AI agent that researches a target company on the open web, builds a
 structured profile, drafts a personalized cold email, and recommends a send
